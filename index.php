@@ -2,30 +2,25 @@
   $Summary="";
   $error="";
   if(array_key_exists("city",$_GET)){
-    $SearchedCity=str_replace(" ","",$_GET["city"]);
-    $file_headers = @get_headers("http://www.weather-forecast.com/locations/".$SearchedCity."/forecasts/latest");
-  #  $url="http://completewebdevelopercourse.com/locations/".$SearchedCity;
-  #  $headers = @get_headers($url);
-  #  if($headers[0] == 'HTTP/1.1 404 Not Found'){
-    if($file_headers[18] == 'HTTP/1.0 404 Not Found') {
-      $error="The Searched City is Out of Records!!";
-    }else{      
-     # $externalSource=file_get_contents($url);
-     # $Reqd=explode('<span class="read-more-small"><span class="read-more-content"> <span class="phrase">',$externalSource);
-      $forecastPage = file_get_contents("https://www.weather-forecast.com/locations/".$SearchedCity."/forecasts/latest");
-      $pageArr = explode('(1–3 days)</div><p class="b-forecast__table-description-content"><span class="phrase">', $forecastPage);
-      if(sizeof($pageArr)>1){
-        # $Required=explode("</span></span></span>",$Reqd[1]);
-        $secondPageArr = explode('</span></p></td><td class="b-forecast__table-description-cell--js" colspan="9">', $pageArr[1]);
-        if(sizeof($secondPageArr)>1){
-         # $Summary=$Required[0];
-          $Summary=$secondPageArr[0];
-        }else{
-          $error="Page Could Not be found!!";
-        }
-      }else{
-        $error="Page Could Not be found!!";
-      }      
+    $SearchedCity=urlencode($_GET["city"]);
+    $urlContents=file_get_contents("http://api.openweathermap.org/data/2.5/weather?q=".$SearchedCity."&appid=f10fc4aa56749595a456fca6dde7bff5");
+    $weatherArray=json_decode($urlContents,true);
+    #print_r($weatherArray);
+    if($weatherArray['cod']==200){
+      $temp_curr=$weatherArray['main']['temp']-273.15;
+      $temp_feels_like=$weatherArray['main']['feels_like']-273.15;
+      $temp_min=$weatherArray['main']['temp_min']-273.15;
+      $temp_max=$weatherArray['main']['temp_max']-273.15;
+      $windSpeed=$weatherArray['wind']['speed'];
+      $Summary="The Weather in ".$_GET['city']." is currently <strong>'".$weatherArray['weather']['0']['description']."'</strong>.";
+      $Summary.="<div class='alert alert-info' role='alert'>&nbsp;&nbsp;&nbsp;&nbsp;<strong>Temperature Details :</strong>
+                <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Current : ".$temp_curr."&deg;C
+                <br>&nbsp;&nbsp;&nbsp;&nbsp;Feels Like : ".$temp_feels_like."&deg;C
+                <br>Minimum : ".$temp_min."&deg;C
+                <br>Maximum : ".$temp_max."&deg;C</div>";
+      $Summary.="<div class='alert alert-info' role='alert'><strong>Wind Speed : </strong>".$windSpeed." m/s</div>";
+    }else{
+      $error="The Searched City doesn't exist in the records !";
     }
   }
 
@@ -66,11 +61,11 @@ body {
 
 <body>
 
-    <div class="container" style="width:600px;margin-top:120px;">
+    <div class="container" style="width:600px;margin-top:10px;">
       <h1>Welcome to Weather Scraper ! </h1>
       <form>  
         <div class="form-group">
-          <label style="color:#FFFFFF;font-weight:900;font-size:130%;" for="city"><p>Enter the name of a City ?</p></label>
+          <label style="color:#6969FF;font-weight:900;font-size:130%;" for="city"><p>Enter the name of a City ?</p></label>
           <input type="text" class="form-control" name="city" id="city" aria-describedby="helpId" placeholder="Ex. London,Tokyo,Delhi,etc" value="<?php 
               if(array_key_exists('city', $_GET)){      
                  echo $_GET['city'];
@@ -81,7 +76,7 @@ body {
       <div style="margin-top:20px;">
         <?php 
             if($Summary){              
-              echo "<div class='alert alert-info' role='alert'>".$Summary."</div>";
+              echo "<div class='alert alert-success' role='alert'>".$Summary."</div>";
             }else if($error){ 
               echo "<div class='alert alert-danger' role='alert'>".$error."</div>"; 
             }
